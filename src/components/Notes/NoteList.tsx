@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import NoteCard from "./NoteCard";
 import { Note } from "@/libs/data";
-import { notesApi } from "@/lib/api";
+import { notesApi } from "@/libs/api";
 import {
   Select,
   SelectContent,

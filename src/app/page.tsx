@@ -1,43 +1,53 @@
 'use client';
+
 import React, { useEffect, useState } from "react";
 import MainLayout from "@/components/Layout/MainLayout";
 import NoteList from "@/components/Notes/NoteList";
 import CreateNoteButton from "@/components/ui/CreateNoteButton";
-import { initializeLocalStorage } from "@/lib/api";
 import { authService } from "@/libs/auth-service";
 import { useRouter } from "next/navigation";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const Index = () => {
   const [refresh, setRefresh] = useState(0);
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("");
+  const [notes, setNotes] = useState([]);
   const router = useRouter();
 
   useEffect(() => {
-    // Initialiser le stockage local au chargement de l'application
-    initializeLocalStorage();
-    
-    // Vérifier si l'utilisateur est connecté
     if (!authService.isLoggedIn()) {
       router.push("/login");
       return;
     }
 
-    // Récupérer les informations de l'utilisateur
-    const currentUser = authService.getCurrentUser();
-    if (currentUser) {
-      setUserName(currentUser.name);
-    }
-    
-    setLoading(false);
-  }, [router]);
+    // const currentUser = authService.getCurrentUser();
+    // if (currentUser) {
+    //   setUserName(currentUser.name);
+    // }
+
+    const fetchNotes = async () => {
+   try {
+  const res = await fetch("/api/notes");
+  // Commenté pour ne pas bloquer l'affichage pendant les tests :
+  // if (!res.ok) throw new Error("Erreur récupération notes");
+  if (!res.ok) return;
+  const data = await res.json();
+  setNotes(data);
+} catch (error) {
+  // console.error(error); // Optionnel : log discret
+} finally {
+  setLoading(false);
+}
+    };
+
+    fetchNotes();
+  }, [refresh, router]);
 
   const handleNoteCreated = () => {
-    // Force le rechargement de la liste des notes
-    setRefresh(prev => prev + 1);
+    setRefresh((prev) => prev + 1);
   };
 
   if (loading) {
@@ -70,7 +80,7 @@ const Index = () => {
             <div className="flex justify-between items-center">
               <div>
                 <h1 className="text-3xl font-bold">
-                  Bienvenue, {userName.split(' ')[0]}
+                  Bienvenue, {userName.split(" ")[0]}
                 </h1>
                 <p className="text-muted-foreground mt-1">
                   Gérez et organisez vos notes facilement avec NoteNexus
@@ -80,8 +90,8 @@ const Index = () => {
             </div>
           </CardContent>
         </Card>
-        
-        <NoteList key={refresh} />
+
+        <NoteList key={refresh} notes={notes} />
       </div>
     </MainLayout>
   );

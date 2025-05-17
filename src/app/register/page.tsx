@@ -3,22 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { UserPlus, NotebookPen } from "lucide-react";
+import { Mail, Lock, KeyRound, UserPlus, User } from "lucide-react";
+import Image from "next/image";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 
 export default function RegisterPage() {
   const router = useRouter();
-
   const [isLoading, setIsLoading] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -54,14 +47,12 @@ export default function RegisterPage() {
 
       if (!res.ok) {
         toast.error(data.error || "Erreur lors de l'inscription");
-        setIsLoading(false);
         return;
       }
 
       toast.success("Compte créé avec succès");
 
       if (data.user.role === "admin") {
-        toast.success("Vous êtes connecté en tant qu'administrateur");
         router.push("/admin");
       } else {
         router.push("/");
@@ -74,133 +65,115 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-5xl flex flex-row-reverse gap-8 items-center">
-        {/* Illustration */}
-        <div className="hidden lg:flex lg:flex-1 flex-col items-center justify-center animate-fade-in">
-          <div className="text-center mb-6">
-            <h1 className="text-4xl font-bold text-primary">NoteNexus</h1>
-            <p className="text-xl text-gray-700 mt-2">Rejoignez-nous!</p>
-          </div>
-          <div className="relative w-full h-64">
-            <NotebookPen
-              className="h-64 w-64 text-primary mx-auto"
-              strokeWidth={1.5}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-gray-50 to-transparent bottom-0 opacity-30"></div>
-          </div>
-          <div className="text-center mt-6 max-w-md">
-            <p className="text-gray-700">
-              Créez un compte pour commencer à organiser vos notes et à
-              partager vos idées avec votre équipe.
-            </p>
-          </div>
-        </div>
+    <div className="min-h-screen bg-white flex flex-col lg:flex-row">
+      {/* Formulaire */}
+      <div className="w-full lg:w-1/2 px-10 lg:px-24 py-10 flex flex-col justify-center">
+        <h1 className="text-4xl font-bold text-gray-900 mb-2">Créer un compte</h1>
+        <p className="text-gray-600 mb-6">
+          Inscrivez-vous pour commencer à utiliser <b>NoteNexus</b>
+        </p>
 
-        {/* Formulaire */}
-        <div className="w-full lg:w-1/2 lg:flex-1">
-          <Card className="border-t-4 border-t-primary bg-white shadow-lg">
-            <CardHeader className="bg-gray-100 rounded-t-lg">
-              <CardTitle className="text-gray-900">Créer un compte</CardTitle>
-              <CardDescription className="text-gray-700">
-                Inscrivez-vous pour commencer à utiliser NoteNexus
-              </CardDescription>
-            </CardHeader>
-            <form onSubmit={handleSubmit}>
-              <CardContent className="space-y-4 pt-6 bg-white">
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-gray-800">
-                    Nom complet
-                  </Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Votre nom"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    disabled={isLoading}
-                    className="text-primary font-semibold bg-gray-50 border-gray-200 focus:border-primary"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-gray-800">
-                    Email
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="votre@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={isLoading}
-                    className="bg-gray-50 border-gray-200 focus:border-primary text-primary font-semibold"
-                  />
-                  {isAdminEmail && (
-                    <p className="text-sm text-primary">
-                      Vous vous inscrivez avec un email administrateur.
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-gray-800">
-                    Mot de passe
-                  </Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={isLoading}
-                    className="bg-gray-50 border-gray-200 focus:border-primary text-primary font-semibold"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-gray-800">
-                    Confirmer le mot de passe
-                  </Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    disabled={isLoading}
-                    className="bg-gray-50 border-gray-200 focus:border-primary text-primary font-semibold"
-                  />
-                </div>
-                <div className="text-sm text-gray-700 border-l-2 border-primary pl-2 py-1 bg-gray-50">
-                  <p>
-                    Pour créer un compte administrateur, utilisez un email se
-                    terminant par <strong>@notenexus.com</strong>.
-                  </p>
-                </div>
-              </CardContent>
-              <CardFooter className="flex flex-col space-y-4 pt-2 pb-6 bg-white">
-                <Button
-                  type="submit"
-                  className="w-full bg-primary hover:bg-primary/90 text-white"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    "Inscription en cours..."
-                  ) : (
-                    <>
-                      <UserPlus className="mr-2 h-4 w-4" />
-                      S'inscrire
-                    </>
-                  )}
-                </Button>
-                <div className="text-center text-sm text-gray-800">
-                  Vous avez déjà un compte?{" "}
-                  <a href="/login" className="text-primary hover:underline font-medium">
-                    Se connecter
-                  </a>
-                </div>
-              </CardFooter>
-            </form>
-          </Card>
-        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="name" className="text-gray-700 text-sm">Nom Complet</Label>
+            <div className="relative mt-1">
+              <Input
+                id="name"
+                type="text"
+                placeholder="Jean Dupont"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={isLoading}
+                className="pl-10"
+              />
+              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="email" className="text-gray-700 text-sm">Email</Label>
+            <div className="relative mt-1">
+              <Input
+                id="email"
+                type="email"
+                placeholder="nom@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
+                className="pl-10"
+              />
+              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="password" className="text-gray-700 text-sm">Mot de passe</Label>
+            <div className="relative mt-1">
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
+                className="pl-10"
+              />
+              <KeyRound className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="confirmPassword" className="text-gray-700 text-sm">Confirmer le mot de passe</Label>
+            <div className="relative mt-1">
+              <Input
+                id="confirmPassword"
+                type="password"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={isLoading}
+                className="pl-10"
+              />
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            </div>
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full mt-4 bg-violet-600 hover:bg-violet-700 text-white"
+            disabled={isLoading}
+          >
+            {isLoading ? "Inscription..." : (
+              <>
+                <UserPlus className="mr-2 h-4 w-4" />
+                S'inscrire
+              </>
+            )}
+          </Button>
+        </form>
+
+        <p className="mt-4 text-sm text-gray-700">
+          Vous avez déjà un compte ?{" "}
+          <a href="/login" className="text-violet-600 font-medium hover:underline">
+            Se connecter
+          </a>
+        </p>
+      </div>
+
+      {/* Image illustrée */}
+      <div className="hidden lg:flex w-1/2 bg-gray-50 items-center justify-center flex-col px-10">
+        <h2 className="text-3xl font-bold text-violet-700 mb-2">NoteNexus</h2>
+        <p className="text-sm text-gray-600 mb-6">Rejoignez-nous!</p>
+        <Image
+          src="/images/note.png"
+          alt="Illustration inscription"
+          width={300}
+          height={300}
+          className="mb-4"
+        />
+        <p className="text-center text-gray-700 text-sm max-w-sm font-bold">
+          Créez un compte pour commencer à organiser vos notes et à partager vos idées avec votre équipe.
+        </p>
       </div>
     </div>
   );

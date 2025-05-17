@@ -1,33 +1,38 @@
-import { NextResponse } from "next/server";
-import prisma from "@/libs/prismadb";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/libs/auth";
+// pages/api/notes.ts
+import { NextApiRequest, NextApiResponse } from "next";
+import  prisma  from "@/libs/prismadb";
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method === "POST") {
+    const {
+      title,
+      content,
+      isFavorite,
+      isPublic,
+      userId,
+      categoryId,
+      groupId,
+    } = req.body;
 
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
-  }
+    try {
+      const newNote = await prisma.note.create({
+        data: {
+          title,
+          content,
+          isFavorite: isFavorite ?? false,
+          isPublic: isPublic ?? false,
+          userId,
+          categoryId: categoryId || undefined,
+          groupId: groupId || undefined,
+        },
+      });
 
-  try {
-    // Trouver l'utilisateur pour récupérer son id
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: "Utilisateur non trouvé" }, { status: 404 });
+      res.status(201).json(newNote);
+    } catch (error) {
+      console.error("Erreur lors de la création de la note :", error);
+      res.status(500).json({ message: "Erreur serveur" });
     }
-
-    const notes = await prisma.note.findMany({
-      where: { userId: user.id },
-      orderBy: { createdAt: "desc" },
-    });
-
-    return NextResponse.json(notes);
-  } catch (error) {
-    console.error("Erreur récupération notes:", error);
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+  } else {
+    res.status(405).json({ message: "Méthode non autorisée" });
   }
 }

@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -15,29 +17,40 @@ import { User, LogOut, Settings, ShieldCheck } from "lucide-react";
 import { authService } from "@/libs/auth-service";
 import { toast } from "sonner";
 
+type UserType = {
+  name: string;
+  email: string;
+  role?: string;
+  image?: string;
+};
+
 const ProfileMenu = () => {
   const router = useRouter();
-  const [user, setUser] = useState(
-    authService.getCurrentUser() || window.currentUser
-  );
-  const isAdmin = user && user.role === "admin";
+  const [user, setUser] = useState<UserType | null>(null);
 
   useEffect(() => {
-    // Mettre à jour l'utilisateur lorsqu'il change
-    const currentUser = authService.getCurrentUser();
-    if (currentUser) {
-      setUser(currentUser);
-    }
+    const fetchUser = async () => {
+      const currentUser = await authService.getCurrentUser();
+      if (currentUser) {
+        setUser(currentUser);
+      }
+    };
+    fetchUser();
   }, []);
 
-  const initials = user.name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase();
+  if (!user) return null;
 
-  const handleLogout = () => {
-    authService.logout();
+  const initials =
+    user.name
+      ?.split(" ")
+      .map((n: string) => n[0])
+      .join("")
+      .toUpperCase() ?? "";
+
+  const isAdmin = user.role === "admin";
+
+  const handleLogout = async () => {
+    await authService.logout();
     toast.success("Déconnexion réussie");
     router.push("/login");
   };
@@ -46,7 +59,7 @@ const ProfileMenu = () => {
     <DropdownMenu>
       <DropdownMenuTrigger className="flex items-center gap-2 outline-none hover:bg-accent/50 rounded-full p-1 transition-colors">
         <Avatar>
-          <AvatarImage src={user.avatar} alt={user.name} />
+          <AvatarImage src={user.image || ""} alt={user.name} />
           <AvatarFallback className="bg-primary text-primary-foreground">
             {initials}
           </AvatarFallback>
@@ -64,7 +77,7 @@ const ProfileMenu = () => {
       <DropdownMenuContent align="end" className="w-56">
         <div className="flex items-center gap-2 p-2">
           <Avatar className="h-10 w-10">
-            <AvatarImage src={user.avatar} alt={user.name} />
+            <AvatarImage src={user.image || ""} alt={user.name} />
             <AvatarFallback className="bg-primary text-primary-foreground">
               {initials}
             </AvatarFallback>
@@ -89,17 +102,19 @@ const ProfileMenu = () => {
         {isAdmin && (
           <Link href="/admin" passHref>
             <DropdownMenuItem asChild>
-              <div className="cursor-pointer">
+              <a className="cursor-pointer">
                 <ShieldCheck className="mr-2 h-4 w-4" />
                 <span>Administration</span>
-              </div>
+              </a>
             </DropdownMenuItem>
           </Link>
         )}
-        <Link href="/settings">
-          <DropdownMenuItem className="cursor-pointer">
-            <Settings className="mr-2 h-4 w-4" />
-            <span>Paramètres</span>
+        <Link href="/settings" passHref>
+          <DropdownMenuItem asChild>
+            <a className="cursor-pointer">
+              <Settings className="mr-2 h-4 w-4" />
+              <span>Paramètres</span>
+            </a>
           </DropdownMenuItem>
         </Link>
         <DropdownMenuSeparator />

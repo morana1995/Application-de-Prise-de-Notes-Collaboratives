@@ -1,254 +1,138 @@
-
-import { Note, Category, User, Group } from "./data";
+import prisma from "@/libs/prismadb";
 import { toast } from "sonner";
-import { authService } from "./auth-service";
 
-const API_DELAY = 300; // Simulation du délai réseau
-
-// Fonction utilitaire pour simuler des appels API
-const simulateApiCall = async <T>(data: T): Promise<T> => {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(data), API_DELAY);
-  });
-};
-
-// API pour les notes
+// API Notes avec Prisma + MongoDB
 export const notesApi = {
-  // Récupérer toutes les notes
-  getAllNotes: async (): Promise<Note[]> => {
+  // Obtenir toutes les notes d’un utilisateur ou les publiques
+  getAllNotes: async (userId: string | null = null) => {
     try {
-      const storedNotes = localStorage.getItem("notes");
-      const notes = storedNotes ? JSON.parse(storedNotes) : [];
-      
-      // Si l'utilisateur est connecté, filtrer les notes
-      const currentUser = authService.getCurrentUser();
-      if (currentUser) {
-        // Afficher les notes publiques et les notes de l'utilisateur connecté
-        const filteredNotes = mockNotes.filter(note => 
-          note.isPublic || note.author.id === currentUser.id
-        );
-        return simulateApiCall(notes.length > 0 ? notes : filteredNotes);
-      }
-      
-      return simulateApiCall(notes.length > 0 ? notes : mockNotes);
+      const notes = await prisma.note.findMany({
+        where: userId
+          ? {
+              OR: [
+                { userId }, // notes de l'utilisateur
+                { isPublic: true } // à activer si tu veux aussi les notes publiques
+              ],
+            }
+          : {},
+        include: {
+          user: true,
+          category: true, // 🔧 RECONNU maintenant que Prisma a été généré
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+      return notes;
     } catch (error) {
-      console.error("Error fetching notes:", error);
+      console.error("Erreur lors du chargement des notes", error);
       toast.error("Erreur lors du chargement des notes");
-      return mockNotes;
+      return [];
     }
   },
 
-  // Récupérer une note par ID
-  getNoteById: async (id: string): Promise<Note | undefined> => {
+  // Obtenir une note par ID
+  getNoteById: async (id: string) => {
     try {
-      const storedNotes = localStorage.getItem("notes");
-      const notes = storedNotes ? JSON.parse(storedNotes) : mockNotes;
-      const note = notes.find((n: Note) => n.id === id);
-      return simulateApiCall(note);
+      const note = await prisma.note.findUnique({
+        where: { id },
+        include: {
+          user: true,
+          category: true,
+        },
+      });
+      return note;
     } catch (error) {
-      console.error(`Error fetching note ${id}:`, error);
+      console.error(`Erreur lors de la récupération de la note ${id}`, error);
       toast.error("Erreur lors du chargement de la note");
-      return undefined;
+      return null;
     }
   },
 
-  // Créer une nouvelle note
-  createNote: async (note: Omit<Note, "id" | "createdAt" | "updatedAt">): Promise<Note> => {
+  // Créer une note
+  createNote: async ({
+    title,
+    content,
+    userId,
+    categoryId,
+  }: {
+    title: string;
+    content: string;
+    userId: string;
+    categoryId?: string | null;
+  }) => {
     try {
-      const storedNotes = localStorage.getItem("notes");
-      const notes = storedNotes ? JSON.parse(storedNotes) : mockNotes;
-      
-      const newNote: Note = {
-        ...note,
-        id: `note-${Date.now()}`,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      
-      const updatedNotes = [newNote, ...notes];
-      localStorage.setItem("notes", JSON.stringify(updatedNotes));
-      
+      const newNote = await prisma.note.create({
+        data: {
+          title,
+          content,
+          userId,
+          categoryId: categoryId ?? null,
+        },
+      });
       toast.success("Note créée avec succès");
-      return simulateApiCall(newNote);
+      return newNote;
     } catch (error) {
-      console.error("Error creating note:", error);
+      console.error("Erreur lors de la création de la note", error);
       toast.error("Erreur lors de la création de la note");
       throw error;
     }
   },
 
   // Mettre à jour une note
-  updateNote: async (id: string, updates: Partial<Note>): Promise<Note> => {
+  updateNote: async (
+    id: string,
+    updates: { title?: string; content?: string; categoryId?: string | null }
+  ) => {
     try {
-      const storedNotes = localStorage.getItem("notes");
-      const notes = storedNotes ? JSON.parse(storedNotes) : mockNotes;
-      
-      const updatedNotes = notes.map((note: Note) => {
-        if (note.id === id) {
-          return {
-            ...note,
-            ...updates,
-            updatedAt: new Date().toISOString()
-          };
-        }
-        return note;
+      const updatedNote = await prisma.note.update({
+        where: { id },
+        data: {
+          ...updates,
+          updatedAt: new Date(),
+        },
       });
-      
-      localStorage.setItem("notes", JSON.stringify(updatedNotes));
-      const updatedNote = updatedNotes.find((note: Note) => note.id === id);
-      
       toast.success("Note mise à jour avec succès");
-      return simulateApiCall(updatedNote);
+      return updatedNote;
     } catch (error) {
-      console.error(`Error updating note ${id}:`, error);
+      console.error(`Erreur lors de la mise à jour de la note ${id}`, error);
       toast.error("Erreur lors de la mise à jour de la note");
       throw error;
     }
   },
 
   // Supprimer une note
-  deleteNote: async (id: string): Promise<boolean> => {
+  deleteNote: async (id: string) => {
     try {
-      const storedNotes = localStorage.getItem("notes");
-      const notes = storedNotes ? JSON.parse(storedNotes) : mockNotes;
-      
-      const updatedNotes = notes.filter((note: Note) => note.id !== id);
-      localStorage.setItem("notes", JSON.stringify(updatedNotes));
-      
+      await prisma.note.delete({
+        where: { id },
+      });
       toast.success("Note supprimée avec succès");
-      return simulateApiCall(true);
+      return true;
     } catch (error) {
-      console.error(`Error deleting note ${id}:`, error);
+      console.error(`Erreur lors de la suppression de la note ${id}`, error);
       toast.error("Erreur lors de la suppression de la note");
       return false;
     }
   },
+};
 
-  // Récupérer les notes favorites
-  getFavorites: async (): Promise<Note[]> => {
+// API Categories avec Prisma + MongoDB
+export const categoriesApi = {
+  // Obtenir toutes les catégories d’un utilisateur
+  getAllCategories: async (userId: string) => {
     try {
-      const storedNotes = localStorage.getItem("notes");
-      const notes = storedNotes ? JSON.parse(storedNotes) : mockNotes;
-      const favorites = notes.filter((note: Note) => note.isFavorite);
-      
-      return simulateApiCall(favorites);
+      const categories = await prisma.category.findMany({
+        where: { userId },
+        orderBy: {
+          name: "asc",
+        },
+      });
+      return categories;
     } catch (error) {
-      console.error("Error fetching favorites:", error);
-      toast.error("Erreur lors du chargement des favoris");
+      console.error("Erreur lors du chargement des catégories", error);
+      toast.error("Erreur lors du chargement des catégories");
       return [];
     }
   },
-
-  // Basculer le statut favori d'une note
-  toggleFavorite: async (id: string): Promise<Note | undefined> => {
-    try {
-      const storedNotes = localStorage.getItem("notes");
-      const notes = storedNotes ? JSON.parse(storedNotes) : mockNotes;
-      
-      const updatedNotes = notes.map((note: Note) => {
-        if (note.id === id) {
-          return {
-            ...note,
-            isFavorite: !note.isFavorite,
-            updatedAt: new Date().toISOString()
-          };
-        }
-        return note;
-      });
-      
-      localStorage.setItem("notes", JSON.stringify(updatedNotes));
-      const updatedNote = updatedNotes.find((note: Note) => note.id === id);
-      
-      return simulateApiCall(updatedNote);
-    } catch (error) {
-      console.error(`Error toggling favorite for note ${id}:`, error);
-      toast.error("Erreur lors de la modification des favoris");
-      return undefined;
-    }
-  }
-};
-
-// API pour les catégories
-export const categoriesApi = {
-  // Récupérer toutes les catégories
-  getAllCategories: async (): Promise<Category[]> => {
-    try {
-      const storedCategories = localStorage.getItem("categories");
-      const categories = storedCategories ? JSON.parse(storedCategories) : [];
-      return simulateApiCall(categories.length > 0 ? categories : mockCategories);
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-      toast.error("Erreur lors du chargement des catégories");
-      return mockCategories;
-    }
-  },
-
-  // Créer une nouvelle catégorie
-  createCategory: async (category: Omit<Category, "id">): Promise<Category> => {
-    try {
-      const storedCategories = localStorage.getItem("categories");
-      const categories = storedCategories ? JSON.parse(storedCategories) : mockCategories;
-      
-      const newCategory: Category = {
-        ...category,
-        id: `cat-${Date.now()}`
-      };
-      
-      const updatedCategories = [...categories, newCategory];
-      localStorage.setItem("categories", JSON.stringify(updatedCategories));
-      
-      toast.success("Catégorie créée avec succès");
-      return simulateApiCall(newCategory);
-    } catch (error) {
-      console.error("Error creating category:", error);
-      toast.error("Erreur lors de la création de la catégorie");
-      throw error;
-    }
-  }
-};
-
-// API pour les groupes
-export const groupsApi = {
-  // Récupérer tous les groupes
-  getAllGroups: async (): Promise<Group[]> => {
-    try {
-      const storedGroups = localStorage.getItem("groups");
-      const groups = storedGroups ? JSON.parse(storedGroups) : [];
-      return simulateApiCall(groups.length > 0 ? groups : mockGroups);
-    } catch (error) {
-      console.error("Error fetching groups:", error);
-      toast.error("Erreur lors du chargement des groupes");
-      return mockGroups;
-    }
-  }
-};
-
-// Importer les données mock pour l'initialisation
-import { mockNotes, mockCategories, mockGroups } from "./data";
-
-// Initialiser le stockage local au premier chargement
-export const initializeLocalStorage = () => {
-  if (!localStorage.getItem("notes")) {
-    // Adapter les notes pour utiliser l'utilisateur courant
-    const currentUser = authService.getCurrentUser() || window.currentUser;
-    const notesWithCurrentUser = mockNotes.map(note => {
-      if (note.author.id === "user-1") {
-        return {
-          ...note,
-          author: currentUser
-        };
-      }
-      return note;
-    });
-    
-    localStorage.setItem("notes", JSON.stringify(notesWithCurrentUser));
-  }
-  
-  if (!localStorage.getItem("categories")) {
-    localStorage.setItem("categories", JSON.stringify(mockCategories));
-  }
-  
-  if (!localStorage.getItem("groups")) {
-    localStorage.setItem("groups", JSON.stringify(mockGroups));
-  }
 };

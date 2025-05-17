@@ -17,7 +17,7 @@ import { Star, MoreVertical, Edit, Trash, Share, UserPlus } from "lucide-react";
 import { cn } from "@/libs/utils";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { notesApi } from "@/lib/api";
+import { notesApi } from "@/libs/api";
 
 interface NoteCardProps {
   note: Note;
