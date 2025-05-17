@@ -5,6 +5,27 @@ import prisma from "@/libs/prismadb";
 import bcrypt from "bcryptjs";
 import { AuthOptions } from "next-auth";
 
+// Étendre les types NextAuth
+import { JWT } from "next-auth/jwt";
+
+declare module "next-auth" {
+  interface Session {
+    user: {
+      name?: string | null;
+      email?: string | null;
+      image?: string | null;
+      role?: string | null;
+    };
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    email?: string;
+    role?: string;
+  }
+}
+
 export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: {
@@ -38,5 +59,21 @@ export const authOptions: AuthOptions = {
   ],
   pages: {
     signIn: "/login",
+  },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user?.email) {
+        token.email = user.email;
+        token.role = user.email.endsWith("@notenexus.com") ? "admin" : "user";
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (token?.email) {
+        session.user.email = token.email;
+        session.user.role = token.role ?? null;
+      }
+      return session;
+    },
   },
 };

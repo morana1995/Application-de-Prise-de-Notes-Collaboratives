@@ -2,13 +2,15 @@
 
 import React, { useEffect, useState } from "react";
 import MainLayout from "@/components/Layout/MainLayout";
-import NoteList from "@/components/Notes/NoteList";
 import CreateNoteButton from "@/components/ui/CreateNoteButton";
 import { authService } from "@/libs/auth-service";
 import { useRouter } from "next/navigation";
-
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { ChevronDown } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+// import NoteList from "@/components/Notes/NoteList"; // à décommenter plus tard si nécessaire
 
 const Index = () => {
   const [refresh, setRefresh] = useState(0);
@@ -18,32 +20,34 @@ const Index = () => {
   const router = useRouter();
 
   useEffect(() => {
-    if (!authService.isLoggedIn()) {
-      router.push("/login");
-      return;
-    }
+    const checkAuthAndLoadData = async () => {
+      if (!authService.isLoggedIn()) {
+        router.push("/login");
+        return;
+      }
 
-    // const currentUser = authService.getCurrentUser();
-    // if (currentUser) {
-    //   setUserName(currentUser.name);
-    // }
+      try {
+        const res = await fetch("/api/user");
+        if (!res.ok) throw new Error("Échec récupération utilisateur");
+        const data = await res.json();
+        setUserName(data.user.name || "Utilisateur");
+      } catch (error) {
+        console.error("Erreur récupération utilisateur :", error);
+      }
 
-    const fetchNotes = async () => {
-   try {
-  const res = await fetch("/api/notes");
-  // Commenté pour ne pas bloquer l'affichage pendant les tests :
-  // if (!res.ok) throw new Error("Erreur récupération notes");
-  if (!res.ok) return;
-  const data = await res.json();
-  setNotes(data);
-} catch (error) {
-  // console.error(error); // Optionnel : log discret
-} finally {
-  setLoading(false);
-}
+      try {
+        const res = await fetch("/api/notes");
+        if (!res.ok) return;
+        const data = await res.json();
+        setNotes(data);
+      } catch (error) {
+        // Erreur silencieuse
+      } finally {
+        setLoading(false);
+      }
     };
 
-    fetchNotes();
+    checkAuthAndLoadData();
   }, [refresh, router]);
 
   const handleNoteCreated = () => {
@@ -74,15 +78,15 @@ const Index = () => {
 
   return (
     <MainLayout>
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-6 px-2 md:px-4">
         <Card className="bg-gradient-to-r from-primary/10 to-accent/10 border-none shadow-sm">
           <CardContent className="p-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col md:flex-row justify-between items-center">
               <div>
                 <h1 className="text-3xl font-bold">
-                  Bienvenue, {userName.split(" ")[0]}
+                  Bonjour, Bienvenue, {userName.split(" ")[0]}
                 </h1>
-                <p className="text-muted-foreground mt-1">
+                <p className="text-muted-foreground mt-1 text-sm">
                   Gérez et organisez vos notes facilement avec NoteNexus
                 </p>
               </div>
@@ -91,7 +95,21 @@ const Index = () => {
           </CardContent>
         </Card>
 
-        <NoteList key={refresh} notes={notes} />
+        <div className="flex justify-between items-center">
+          <Button variant="outline" className="text-sm font-normal flex items-center gap-1">
+            Mis à jour <ChevronDown className="h-4 w-4" />
+          </Button>
+
+          <ToggleGroup type="single" defaultValue="grid" className="gap-1">
+            <ToggleGroupItem value="grid" aria-label="Grille">Grille</ToggleGroupItem>
+            <ToggleGroupItem value="list" aria-label="Liste">Liste</ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+
+        {/* 
+          // TODO: Décommenter quand le composant NoteList est prêt
+          <NoteList key={refresh} notes={notes} view="grid" />
+        */}
       </div>
     </MainLayout>
   );

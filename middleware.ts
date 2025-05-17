@@ -7,21 +7,34 @@ export async function middleware(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   const url = req.nextUrl.clone();
 
-  // Routes publiques (login, register) restent accessibles
+  // Routes publiques accessibles sans auth
   const publicPaths = ["/login", "/register", "/api/auth"];
-
   if (publicPaths.some((path) => url.pathname.startsWith(path))) {
     return NextResponse.next();
   }
 
-  if (!token) {
-    // Rediriger utilisateur non connecté vers login
+  // Non connecté → rediriger vers login
+  if (!token || !token.email) {
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  // Exemple : limiter accès admin uniquement pour /admin/*
-  if (url.pathname.startsWith("/admin") && token.role !== "admin") {
+  const email = token.email as string;
+
+  // Redirection basée sur le domaine email
+  if (url.pathname === "/") {
+    if (email.endsWith("@notenexus.com")) {
+      url.pathname = "/admin/dashboard";
+      return NextResponse.redirect(url);
+    }
+    if (email.endsWith("@gmail.com")) {
+      // Accès autorisé pour utilisateur classique
+      return NextResponse.next();
+    }
+  }
+
+  // Protection des routes admin : seuls les emails @notenexus.com autorisés
+  if (url.pathname.startsWith("/admin") && !email.endsWith("@notenexus.com")) {
     url.pathname = "/";
     return NextResponse.redirect(url);
   }
@@ -31,6 +44,7 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
+    "/", // Rediriger en fonction du rôle sur page principale
     "/profile/:path*",
     "/notes/:path*",
     "/admin/:path*",
