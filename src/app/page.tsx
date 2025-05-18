@@ -28,11 +28,7 @@ const Index = () => {
         const { user } = await authRes.json();
         setUser(user);
 
-        const notesRes = await fetch(`/api/notes?userId=${user.id}`);
-        if (!notesRes.ok) {
-         console.error("Erreur API /api/notes:", await notesRes.text());
-          return;
-      }
+        const notesRes = await fetch(`/api/notes?userId=${user._id}`);
         const notesData = await notesRes.json();
         setNotes(notesData);
       } catch (err) {

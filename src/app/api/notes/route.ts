@@ -1,29 +1,37 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import prisma from "@/libs/prismadb";
 
-// GET /api/notes?userId=xxx
-export async function GET(req: NextRequest) {
-  const userId = req.nextUrl.searchParams.get("userId");
-
-  if (!userId) {
-    return NextResponse.json({ message: "userId manquant" }, { status: 400 });
-  }
-
+/**
+ * GET: Récupérer toutes les notes ou les notes d’un utilisateur spécifique
+ */
+export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("userId");
+
     const notes = await prisma.note.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
+      where: userId ? { userId } : undefined,
+      include: {
+        user: true,
+        category: true,
+        group: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
     });
 
-    return NextResponse.json(notes);
+    return NextResponse.json(notes, { status: 200 });
   } catch (error) {
-    console.error("Erreur récupération notes :", error);
+    console.error("Erreur lors de la récupération des notes :", error);
     return NextResponse.json({ message: "Erreur serveur" }, { status: 500 });
   }
 }
 
-// POST /api/notes
-export async function POST(req: NextRequest) {
+/**
+ * POST: Créer une nouvelle note
+ */
+export async function POST(req: Request) {
   try {
     const body = await req.json();
     const {
@@ -35,13 +43,6 @@ export async function POST(req: NextRequest) {
       categoryId,
       groupId,
     } = body;
-
-    if (!title || !content || !userId) {
-      return NextResponse.json(
-        { message: "Champs requis manquants" },
-        { status: 400 }
-      );
-    }
 
     const newNote = await prisma.note.create({
       data: {
