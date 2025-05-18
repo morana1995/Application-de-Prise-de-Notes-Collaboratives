@@ -84,12 +84,6 @@ const Index = () => {
           </CardContent>
         </Card>
 
-        <div className="flex justify-between items-center">
-          <ToggleGroup type="single" defaultValue="grid" className="gap-1">
-            <ToggleGroupItem value="grid" aria-label="Grille">Grille</ToggleGroupItem>
-            <ToggleGroupItem value="list" aria-label="Liste">Liste</ToggleGroupItem>
-          </ToggleGroup>
-        </div>
 
         <NoteList key={refresh} notes={notes} />
       </div>

@@ -1,3 +1,4 @@
+"use client";
 
 import React, { useState, useEffect } from "react";
 import NoteCard from "./NoteCard";
@@ -27,15 +28,20 @@ const NoteList: React.FC<NoteListProps> = ({ notes: propNotes }) => {
     const loadNotes = async () => {
       setIsLoading(true);
       try {
-        if (propNotes) {
+        if (propNotes && Array.isArray(propNotes)) {
           setNotes(propNotes);
-          setIsLoading(false);
-          return;
+        } else {
+          const data = await notesApi.getAllNotes();
+          if (Array.isArray(data)) {
+            setNotes(data);
+          } else {
+            console.error("Les données retournées ne sont pas un tableau :", data);
+            setNotes([]); // fallback sécurité
+          }
         }
-        const data = await notesApi.getAllNotes();
-        setNotes(data);
       } catch (error) {
-        console.error("Error loading notes:", error);
+        console.error("Erreur lors du chargement des notes :", error);
+        setNotes([]);
       } finally {
         setIsLoading(false);
       }
@@ -44,8 +50,8 @@ const NoteList: React.FC<NoteListProps> = ({ notes: propNotes }) => {
     loadNotes();
   }, [propNotes]);
 
-  // Fonction pour trier les notes
   const getSortedNotes = () => {
+    if (!Array.isArray(notes)) return [];
     return [...notes].sort((a, b) => {
       if (sortBy === "updated") {
         return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
@@ -56,7 +62,7 @@ const NoteList: React.FC<NoteListProps> = ({ notes: propNotes }) => {
       }
     });
   };
-  
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -82,14 +88,14 @@ const NoteList: React.FC<NoteListProps> = ({ notes: propNotes }) => {
           </Tabs>
         </div>
       </div>
-      
+
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : (
-        <div className={view === "grid" 
-          ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" 
+        <div className={view === "grid"
+          ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
           : "space-y-4"
         }>
           {getSortedNotes().map(note => (
@@ -101,7 +107,6 @@ const NoteList: React.FC<NoteListProps> = ({ notes: propNotes }) => {
   );
 };
 
-// Définition locale des options de tri
 const sortOptions = [
   { value: "updated", label: "Mis à jour" },
   { value: "created", label: "Date de création" },

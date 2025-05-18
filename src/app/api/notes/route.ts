@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/libs/prismadb";
 
 /**
- * GET: Récupérer toutes les notes ou les notes d’un utilisateur spécifique
+ * GET: Récupérer toutes les notes ou celles d’un utilisateur
  */
 export async function GET(req: Request) {
   try {
@@ -10,7 +10,7 @@ export async function GET(req: Request) {
     const userId = searchParams.get("userId");
 
     const notes = await prisma.note.findMany({
-      where: userId ? { userId } : undefined,
+      where: userId ? { userId } : {},
       include: {
         user: true,
         category: true,
@@ -21,7 +21,7 @@ export async function GET(req: Request) {
       },
     });
 
-    return NextResponse.json(notes, { status: 200 });
+    return NextResponse.json(notes); // notes est toujours un tableau
   } catch (error) {
     console.error("Erreur lors de la récupération des notes :", error);
     return NextResponse.json({ message: "Erreur serveur" }, { status: 500 });
