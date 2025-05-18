@@ -1,98 +1,77 @@
-import React, { useEffect, useState } from "react";
-import { notesApi, categoriesApi } from "@/libs/api";
+'use client';
 
-interface Category {
-  id: string;
-  name: string;
-}
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { useSession } from 'next-auth/react';
 
-interface Props {
-  userId: string;
+type Props = {
+  isOpen: boolean;
   onClose: () => void;
-  onNoteCreated: () => void;
-}
+  onNoteCreated?: () => void;
+};
 
-const CreateNoteModal: React.FC<Props> = ({ userId, onClose, onNoteCreated }) => {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [categoryId, setCategoryId] = useState<string | null>(null);
+const CreateNoteModal = ({ isOpen, onClose, onNoteCreated }: Props) => {
+  const { data: session } = useSession();
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    async function fetchCategories() {
-      if (!userId) return;
-      const cats = await categoriesApi.getAllCategories(userId);
-      setCategories(cats);
-      if (cats.length > 0) setCategoryId(cats[0].id);
-    }
-    fetchCategories();
-  }, [userId]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim() || !content.trim() || !categoryId) return;
+  const handleCreate = async () => {
+    if (!title.trim() || !content.trim()) return;
 
     setLoading(true);
     try {
-      await notesApi.createNote({
-        title,
-        content,
-        userId,
-        categoryId,
+      const res = await fetch('/api/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          content,
+          userId: session?.user?.id, // ou user._id si ça vient de la route /api/user
+        }),
       });
-      setTitle("");
-      setContent("");
-      setCategoryId(categories.length > 0 ? categories[0].id : null);
-      onNoteCreated();
+
+      if (!res.ok) throw new Error('Erreur lors de la création');
+
+      onNoteCreated?.();
       onClose();
-    } catch (error) {
-      // erreur déjà affichée dans api.ts via toast
+      setTitle('');
+      setContent('');
+    } catch (err) {
+      console.error('Création échouée :', err);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="modal">
-      <form onSubmit={handleSubmit}>
-        <h2>Créer une nouvelle note</h2>
-
-        <input
-          type="text"
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Nouvelle note</DialogTitle>
+        </DialogHeader>
+        <Input
           placeholder="Titre"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          required
         />
-
-        <textarea
+        <Textarea
           placeholder="Contenu"
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          required
+          rows={4}
         />
-
-        <select
-          value={categoryId || ""}
-          onChange={(e) => setCategoryId(e.target.value)}
-          required
-        >
-          {categories.map((cat) => (
-            <option key={cat.id} value={cat.id}>
-              {cat.name}
-            </option>
-          ))}
-        </select>
-
-        <button type="submit" disabled={loading}>
-          {loading ? "Création..." : "Créer"}
-        </button>
-        <button type="button" onClick={onClose} disabled={loading}>
-          Annuler
-        </button>
-      </form>
-    </div>
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="outline" onClick={onClose}>Annuler</Button>
+          <Button onClick={handleCreate} disabled={loading}>
+            {loading ? 'Création...' : 'Créer'}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

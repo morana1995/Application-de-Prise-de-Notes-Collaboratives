@@ -1,133 +1,93 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, LogOut, Settings, ShieldCheck } from "lucide-react";
-import { authService } from "@/libs/auth-service";
-import { toast } from "sonner";
+import { LogOut, User } from "lucide-react";
+import { signOut } from "next-auth/react";
+import { useMemo } from "react";
 
-type UserType = {
-  name: string;
-  email: string;
-  role?: string;
-  image?: string;
-};
+function getInitials(fullName: string | null | undefined): string {
+  if (!fullName) return "??";
 
-const ProfileMenu = () => {
-  const router = useRouter();
-  const [user, setUser] = useState<UserType | null>(null);
+  const nameParts = fullName.trim().split(" ");
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      const currentUser = await authService.getCurrentUser();
-      if (currentUser) {
-        setUser(currentUser);
-      }
-    };
-    fetchUser();
-  }, []);
+  if (nameParts.length === 1) {
+    const firstLetter = nameParts[0][0]?.toUpperCase() || "?";
+    const secondLetter = nameParts[0][1]?.toUpperCase() || "S"; // par défaut "S"
+    return firstLetter + secondLetter;
+  }
 
+  return (
+    (nameParts[0][0]?.toUpperCase() || "?") +
+    (nameParts[1][0]?.toUpperCase() || "?")
+  );
+}
+
+const fallbackColors = [
+  "bg-red-200",
+  "bg-orange-200",
+  "bg-amber-200",
+  "bg-yellow-200",
+  "bg-lime-200",
+  "bg-green-200",
+  "bg-emerald-200",
+  "bg-cyan-200",
+  "bg-sky-200",
+  "bg-blue-200",
+  "bg-indigo-200",
+  "bg-violet-200",
+  "bg-purple-200",
+  "bg-pink-200",
+  "bg-rose-200",
+];
+
+function getRandomColor(): string {
+  const index = Math.floor(Math.random() * fallbackColors.length);
+  return fallbackColors[index];
+}
+
+export default function ProfileMenu({ user }: { user: any }) {
   if (!user) return null;
 
-  const initials =
-    user.name
-      ?.split(" ")
-      .map((n: string) => n[0])
-      .join("")
-      .toUpperCase() ?? "";
-
-  const isAdmin = user.role === "admin";
-
-  const handleLogout = async () => {
-    await authService.logout();
-    toast.success("Déconnexion réussie");
-    router.push("/login");
-  };
+  const initials = useMemo(() => getInitials(user?.name), [user?.name]);
+  const fallbackColor = useMemo(() => getRandomColor(), []);
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="flex items-center gap-2 outline-none hover:bg-accent/50 rounded-full p-1 transition-colors">
-        <Avatar>
-          <AvatarImage src={user.image || ""} alt={user.name} />
-          <AvatarFallback className="bg-primary text-primary-foreground">
-            {initials}
-          </AvatarFallback>
-        </Avatar>
-        <div className="hidden md:block text-left">
-          <p className="text-sm font-medium">{user.name}</p>
-          <p className="text-xs text-muted-foreground">{user.email}</p>
-          {isAdmin && (
-            <span className="text-xs text-primary font-medium">
-              Administrateur
-            </span>
-          )}
-        </div>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <div className="flex items-center gap-2 p-2">
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={user.image || ""} alt={user.name} />
-            <AvatarFallback className="bg-primary text-primary-foreground">
+      <DropdownMenuTrigger className="focus:outline-none">
+        <Avatar className="bg-gray-100">
+          {user.image ? (
+            <AvatarImage src={user.image} alt="avatar" />
+          ) : (
+            <AvatarFallback className={`${fallbackColor} text-black font-bold`}>
               {initials}
             </AvatarFallback>
-          </Avatar>
-          <div>
-            <p className="font-medium">{user.name}</p>
-            <p className="text-xs text-muted-foreground truncate">
-              {user.email}
-            </p>
-            {isAdmin && (
-              <span className="text-xs text-primary font-medium">
-                Administrateur
-              </span>
-            )}
-          </div>
-        </div>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem className="cursor-pointer">
-          <User className="mr-2 h-4 w-4" />
-          <span>Profil</span>
-        </DropdownMenuItem>
-        {isAdmin && (
-          <Link href="/admin" passHref>
-            <DropdownMenuItem asChild>
-              <a className="cursor-pointer">
-                <ShieldCheck className="mr-2 h-4 w-4" />
-                <span>Administration</span>
-              </a>
-            </DropdownMenuItem>
+          )}
+        </Avatar>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="mt-2">
+        <DropdownMenuItem className="cursor-pointer hover:border-gray-800">
+          <Link href="/profile" className="flex items-center w-full">
+            <User className="w-4 h-4 mr-2" />
+            Profil
           </Link>
-        )}
-        <Link href="/settings" passHref>
-          <DropdownMenuItem asChild>
-            <a className="cursor-pointer">
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Paramètres</span>
-            </a>
-          </DropdownMenuItem>
-        </Link>
-        <DropdownMenuSeparator />
+        </DropdownMenuItem>
         <DropdownMenuItem
-          className="cursor-pointer text-destructive"
-          onClick={handleLogout}
+          onClick={() => signOut({ callbackUrl: "/login" })}
+          className="cursor-pointer  hover:border-gray-800 text-rose-600"
         >
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Déconnexion</span>
+          <LogOut className="w-4 h-4 mr-2" />
+          Déconnexion
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
-};
-
-export default ProfileMenu;
+}

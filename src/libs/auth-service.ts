@@ -66,18 +66,18 @@ export const authService = {
 
   // Récupérer l'utilisateur connecté via l'API GET /api/user
   getCurrentUser: async (): Promise<AuthUser | null> => {
-    try {
-      const res = await fetch("/api/user");
+  try {
+    const res = await fetch("/api/user");
 
-      if (!res.ok) return null;
+    if (!res.ok) return null;
 
-      const user: AuthUser = await res.json();
-      return user;
-    } catch (error) {
-      console.error("Erreur lors de getCurrentUser:", error);
-      return null;
-    }
-  },
+    const data = await res.json();
+    return data.user as AuthUser; // correction ici
+  } catch (error) {
+    console.error("Erreur lors de getCurrentUser:", error);
+    return null;
+  }
+},
 
   // Vérifie si l'utilisateur est connecté
   isLoggedIn: async (): Promise<boolean> => {

@@ -1,4 +1,4 @@
-'use client'
+"use client";
 import React from "react";
 import Sidebar from "./Sidebar";
 import SearchBar from "../ui/SearchBar";
@@ -6,12 +6,20 @@ import ProfileMenu from "../ui/ProfileMenu";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { useSession } from "next-auth/react";
 
 interface MainLayoutProps {
   children: React.ReactNode;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
+  const { data: session, status } = useSession();
+
+  if (status === "loading") {
+    // Optionnel : afficher un loader ou rien tant que la session charge
+    return <div>Chargement...</div>;
+  }
+
   return (
     <div className="flex min-h-screen">
       <Sidebar />
@@ -26,7 +34,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 <Bell size={20} />
               </Button>
               <Separator orientation="vertical" className="h-8" />
-              <ProfileMenu />
+              <ProfileMenu user={session?.user ?? null} />
             </div>
           </div>
         </header>
