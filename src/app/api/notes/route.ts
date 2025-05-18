@@ -1,9 +1,31 @@
-// pages/api/notes.ts
-import { NextApiRequest, NextApiResponse } from "next";
-import  prisma  from "@/libs/prismadb";
+import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/libs/prismadb";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method === "POST") {
+// GET /api/notes?userId=xxx
+export async function GET(req: NextRequest) {
+  const userId = req.nextUrl.searchParams.get("userId");
+
+  if (!userId) {
+    return NextResponse.json({ message: "userId manquant" }, { status: 400 });
+  }
+
+  try {
+    const notes = await prisma.note.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json(notes);
+  } catch (error) {
+    console.error("Erreur récupération notes :", error);
+    return NextResponse.json({ message: "Erreur serveur" }, { status: 500 });
+  }
+}
+
+// POST /api/notes
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
     const {
       title,
       content,
@@ -12,27 +34,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       userId,
       categoryId,
       groupId,
-    } = req.body;
+    } = body;
 
-    try {
-      const newNote = await prisma.note.create({
-        data: {
-          title,
-          content,
-          isFavorite: isFavorite ?? false,
-          isPublic: isPublic ?? false,
-          userId,
-          categoryId: categoryId || undefined,
-          groupId: groupId || undefined,
-        },
-      });
-
-      res.status(201).json(newNote);
-    } catch (error) {
-      console.error("Erreur lors de la création de la note :", error);
-      res.status(500).json({ message: "Erreur serveur" });
+    if (!title || !content || !userId) {
+      return NextResponse.json(
+        { message: "Champs requis manquants" },
+        { status: 400 }
+      );
     }
-  } else {
-    res.status(405).json({ message: "Méthode non autorisée" });
+
+    const newNote = await prisma.note.create({
+      data: {
+        title,
+        content,
+        isFavorite: isFavorite ?? false,
+        isPublic: isPublic ?? false,
+        userId,
+        categoryId: categoryId || undefined,
+        groupId: groupId || undefined,
+      },
+    });
+
+    return NextResponse.json(newNote, { status: 201 });
+  } catch (error) {
+    console.error("Erreur lors de la création de la note :", error);
+    return NextResponse.json({ message: "Erreur serveur" }, { status: 500 });
   }
 }

@@ -1,24 +1,25 @@
+'use client';
 
-import React from 'react';
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import CreateNoteModal from '@/components/Notes/CreateNoteModal';
 
-interface CreateNoteButtonProps {
+type Props = {
   onNoteCreated?: () => void;
-}
+};
 
-const CreateNoteButton: React.FC<CreateNoteButtonProps> = ({ onNoteCreated }) => {
+const CreateNoteButton = ({ onNoteCreated }: Props) => {
+  const [open, setOpen] = useState(false);
+
   return (
-    <CreateNoteModal 
-      trigger={
-        <Button className="flex items-center gap-2">
-          <Plus size={16} />
-          <span>Nouvelle note</span>
-        </Button>
-      }
-      onNoteCreated={onNoteCreated}
-    />
+    <>
+      <Button onClick={() => setOpen(true)}>+ Nouvelle note</Button>
+      <CreateNoteModal
+        isOpen={open}
+        onClose={() => setOpen(false)}
+        onNoteCreated={onNoteCreated}
+      />
+    </>
   );
 };
 
