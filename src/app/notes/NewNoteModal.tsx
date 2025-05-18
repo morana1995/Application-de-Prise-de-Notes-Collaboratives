@@ -15,7 +15,6 @@ export default function NewNoteModal({ open, onClose, onSave }: NewNoteModalProp
   const [content, setContent] = useState("");
 
   if (!open) return null;
-
   return (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-30 flex items-center justify-center">
       <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-lg">
