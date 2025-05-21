@@ -31,6 +31,21 @@ export const notesApi = {
     }
   },
 
+  toggleFavorite: async (id: string, currentValue: boolean) => {
+  try {
+    const updatedNote = await prisma.note.update({
+      where: { id },
+      data: { isFavorite: !currentValue },
+    });
+    toast.success(`Note ${!currentValue ? "ajoutée aux favoris" : "retirée des favoris"}`);
+    return updatedNote;
+  } catch (error) {
+    console.error(`Erreur lors du changement du statut favori pour la note ${id}`, error);
+    toast.error("Erreur lors du changement de favori");
+    throw error;
+  }
+},
+
   // Obtenir une note par ID
   getNoteById: async (id: string) => {
     try {

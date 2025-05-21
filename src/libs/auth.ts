@@ -1,13 +1,11 @@
-// libs/auth.ts
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import prisma from "@/libs/prismadb";
 import bcrypt from "bcryptjs";
 import { AuthOptions } from "next-auth";
-
-// Étendre les types NextAuth
 import { JWT } from "next-auth/jwt";
 
+// Étendre les types NextAuth
 declare module "next-auth" {
   interface Session {
     user: {
@@ -24,6 +22,8 @@ declare module "next-auth/jwt" {
   interface JWT {
     id?: string;
     email?: string;
+    name?: string;
+    image?: string | null;
     role?: string;
   }
 }
@@ -32,9 +32,6 @@ export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: {
     strategy: "jwt",
-  },
-  jwt: {
-    secret: process.env.NEXTAUTH_SECRET,
   },
   providers: [
     CredentialsProvider({
@@ -55,7 +52,13 @@ export const authOptions: AuthOptions = {
         const isValid = await bcrypt.compare(credentials.password, user.password);
         if (!isValid) return null;
 
-        return user;
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
+          role: user.role,
+        };
       },
     }),
   ],
@@ -65,9 +68,11 @@ export const authOptions: AuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = (user as any).id; // Ajout du champ id
+        token.id = user.id;
         token.email = user.email ?? undefined;
-        token.role = user.email?.endsWith("@notenexus.com") ? "admin" : "user";
+        token.name = user.name ?? undefined;
+        token.image = user.image ?? null;
+        token.role = (user as any).role ?? "user";
       }
       return token;
     },
@@ -75,9 +80,12 @@ export const authOptions: AuthOptions = {
       if (token) {
         session.user.id = token.id!;
         session.user.email = token.email;
-        session.user.role = token.role ?? null;
+        session.user.name = token.name ?? null;
+        session.user.image = token.image ?? null;
+        session.user.role = token.role ?? "user";
       }
       return session;
     },
   },
+  secret: process.env.NEXTAUTH_SECRET,
 };

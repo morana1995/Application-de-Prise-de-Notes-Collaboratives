@@ -25,10 +25,10 @@ const Index = () => {
           return;
         }
 
-        const { user } = await authRes.json();
-        setUser(user);
+       const data = await authRes.json();
+       setUser(data.user);
 
-        const notesRes = await fetch(`/api/notes?userId=${user._id}`);
+        const notesRes = await fetch(`/api/notes?userId=${data.user.id}`);        
         const notesData = await notesRes.json();
         setNotes(notesData);
       } catch (err) {
@@ -72,9 +72,11 @@ const Index = () => {
           <CardContent className="p-6">
             <div className="flex flex-col md:flex-row justify-between items-center">
               <div>
-                <h1 className="text-3xl font-bold">
-                  Bonjour, {user?.name?.split(" ")[0]}
-                </h1>
+                {user && user.name && (
+  <h1 className="text-3xl font-bold">
+    Bonjour, {user.name.split(" ")[0]}
+  </h1>
+)}
                 <p className="text-gray-600 mt-1 text-sm">
                   Gérez et organisez vos notes facilement avec NoteNexus
                 </p>

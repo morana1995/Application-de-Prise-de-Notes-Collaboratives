@@ -51,12 +51,7 @@ export default function RegisterPage() {
       }
 
       toast.success("Compte créé avec succès");
-
-      if (data.user.role === "admin") {
-        router.push("/admin");
-      } else {
-        router.push("/");
-      }
+      router.push("/");
     } catch (error) {
       toast.error("Erreur serveur lors de l'inscription");
     } finally {
