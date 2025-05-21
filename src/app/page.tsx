@@ -6,43 +6,59 @@ import CreateNoteButton from "@/components/ui/CreateNoteButton";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import NoteList from "@/components/notes/NoteList";
-
+import { useSession } from "next-auth/react";
 
 const Index = () => {
-  const [refresh, setRefresh] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
-  const [notes, setNotes] = useState([]);
+  const { data: session, status } = useSession();
   const router = useRouter();
+  const [notes, setNotes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
-    const checkAuthAndLoadData = async () => {
+    const loadNotes = async () => {
+      if (!session?.user?.id) return;
+
       try {
-        const authRes = await fetch("/api/user");
-        if (!authRes.ok) {
-          router.push("/login");
-          return;
-        }
-
-        const { user } = await authRes.json();
-        setUser(user);
-
-        const notesRes = await fetch(`/api/notes?userId=${user._id}`);
-        const notesData = await notesRes.json();
-        setNotes(notesData);
-      } catch (err) {
-        console.error("Erreur chargement données :", err);
+      const res = await fetch(`/api/notes?userId=${session.user.id}`);
+        if (!res.ok) throw new Error("Erreur lors de la récupération des notes");
+        const data = await res.json();
+        setNotes(data);
+      } catch (error) {
+        console.error(error);
       } finally {
         setLoading(false);
       }
     };
 
-    checkAuthAndLoadData();
-  }, [refresh]);
+    if (status === "unauthenticated") {
+      router.push("/login");
+    }
+
+    if (status === "authenticated") {
+      loadNotes();
+    }
+  }, [session, status, refresh]);
 
   const handleNoteCreated = () => setRefresh((r) => r + 1);
+  const handleNotesUpdated = (updatedNote) => {
+    if (!updatedNote || !updatedNote.id) return;
+
+    setNotes((prevNotes) => {
+      const index = prevNotes.findIndex((n) => n.id === updatedNote.id);
+      if (index !== -1) {
+        const newNotes = [...prevNotes];
+        newNotes[index] = updatedNote;
+        return newNotes;
+      }
+      return [updatedNote, ...prevNotes];
+    });
+  };
+  const handleNoteDeleted = (id: string) => {
+  setNotes((prev) => prev.filter((note) => note.id !== id));
+};
+
 
   if (loading) {
     return (
@@ -74,7 +90,7 @@ const Index = () => {
             <div className="flex flex-col md:flex-row justify-between items-center">
               <div>
                 <h1 className="text-3xl font-bold">
-                  Bonjour, {user?.name?.split(" ")[0]}
+                  Bonjour, {session?.user?.name?.split(" ")[0]}
                 </h1>
                 <p className="text-gray-600 mt-1 text-sm">
                   Gérez et organisez vos notes facilement avec NoteNexus
@@ -85,9 +101,13 @@ const Index = () => {
           </CardContent>
         </Card>
 
-  
+        <NoteList
+  notes={notes}
+  onNotesUpdated={handleNotesUpdated}
+  onNoteDeleted={handleNoteDeleted}
+/>
 
-        <NoteList key={refresh} notes={notes} />
+        
       </div>
     </MainLayout>
   );

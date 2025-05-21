@@ -11,6 +11,7 @@ import { JWT } from "next-auth/jwt";
 declare module "next-auth" {
   interface Session {
     user: {
+      id: string; // ✅ Ajout de l'ID ici
       name?: string | null;
       email?: string | null;
       image?: string | null;
@@ -21,6 +22,7 @@ declare module "next-auth" {
 
 declare module "next-auth/jwt" {
   interface JWT {
+    id?: string; // ✅ Ajout de l'ID ici
     email?: string;
     role?: string;
   }
@@ -62,14 +64,16 @@ export const authOptions: AuthOptions = {
   },
   callbacks: {
     async jwt({ token, user }) {
-      if (user?.email) {
+      if (user) {
+        token.id = user.id; // ✅ Injecter l'id dans le JWT
         token.email = user.email;
-        token.role = user.email.endsWith("@notenexus.com") ? "admin" : "user";
+        token.role = user.email?.endsWith("@notenexus.com") ? "admin" : "user";
       }
       return token;
     },
     async session({ session, token }) {
-      if (token?.email) {
+      if (token) {
+        session.user.id = token.id as string; // ✅ Ajouter l'id dans la session
         session.user.email = token.email;
         session.user.role = token.role ?? null;
       }

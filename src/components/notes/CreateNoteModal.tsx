@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -16,13 +16,6 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useSession } from 'next-auth/react';
 
-const categories = [
-  { id: 'personal', name: 'Personnel' },
-  { id: 'work', name: 'Travail' },
-  { id: 'projects', name: 'Projets' },
-  { id: 'ideas', name: 'Idées' },
-];
-
 type Props = {
   isOpen: boolean;
   onClose: () => void;
@@ -33,9 +26,25 @@ const CreateNoteModal = ({ isOpen, onClose, onNoteCreated }: Props) => {
   const { data: session } = useSession();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [categoryId, setCategoryId] = useState(categories[0].id);
+  const [categoryId, setCategoryId] = useState('');
   const [isPublic, setIsPublic] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+
+  // Récupération des catégories dynamiques
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch('/api/categories');
+        const data = await res.json();
+        setCategories(data);
+        setCategoryId(data[0]?.id || '');
+      } catch (err) {
+        console.error('Erreur lors du chargement des catégories :', err);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const handleCreate = async () => {
     if (!title.trim() || !content.trim()) {
@@ -45,27 +54,35 @@ const CreateNoteModal = ({ isOpen, onClose, onNoteCreated }: Props) => {
 
     setLoading(true);
     try {
+      const payload = {
+        title,
+        content,
+        isPublic,
+        categoryId,
+        userEmail: session?.user?.email,
+      };
+
+      console.log('🟡 Données envoyées à l’API :', payload);
+
       const res = await fetch('/api/notes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          content,
-          isPublic,
-          categoryId,
-          userId: session?.user?.id,
-        }),
+        body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error('Erreur lors de la création');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        console.error('🔴 Erreur API :', errorData);
+        throw new Error(errorData?.message || 'Erreur lors de la création');
+      }
 
       onNoteCreated?.();
       onClose();
 
-      // Reset form
+      // Réinitialisation des champs
       setTitle('');
       setContent('');
-      setCategoryId(categories[0].id);
+      setCategoryId(categories[0]?.id || '');
       setIsPublic(false);
     } catch (err) {
       console.error('Création échouée :', err);
@@ -94,7 +111,7 @@ const CreateNoteModal = ({ isOpen, onClose, onNoteCreated }: Props) => {
             </SelectTrigger>
             <SelectContent>
               {categories.map((cat) => (
-                <SelectItem key={cat.id} value={cat.id}>
+                <SelectItem key={cat.id} value={cat.id} className='bg-white'>
                   {cat.name}
                 </SelectItem>
               ))}
@@ -107,15 +124,23 @@ const CreateNoteModal = ({ isOpen, onClose, onNoteCreated }: Props) => {
             rows={5}
             disabled={loading}
           />
-          <div className="flex items-center space-x-3">
-            <Switch id="isPublic" checked={isPublic} onCheckedChange={setIsPublic} />
+          <div className="flex items-center space-x-3 ">
+            <Switch
+              id="isPublic"
+              checked={isPublic}
+              onCheckedChange={setIsPublic}
+            />
             <Label htmlFor="isPublic">{isPublic ? 'Note publique' : 'Note privée'}</Label>
           </div>
           <DialogFooter className="flex justify-end gap-2">
             <Button variant="outline" onClick={onClose} disabled={loading}>
               Annuler
             </Button>
-            <Button onClick={handleCreate} disabled={loading} className="bg-violet-600 text-white hover:bg-violet-700">
+            <Button
+              onClick={handleCreate}
+              disabled={loading}
+              className="bg-violet-600 text-white hover:bg-violet-700"
+            >
               {loading ? 'Création...' : 'Créer'}
             </Button>
           </DialogFooter>

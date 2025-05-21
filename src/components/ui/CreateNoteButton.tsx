@@ -6,6 +6,7 @@ import CreateNoteModal from '@/components/notes/CreateNoteModal';
 
 type Props = {
   onNoteCreated?: () => void;
+  
 };
 
 const CreateNoteButton = ({ onNoteCreated }: Props) => {

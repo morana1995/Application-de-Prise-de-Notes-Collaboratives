@@ -57,7 +57,7 @@ export const mockUsers: User[] = [
 export const mockCategories: Category[] = [
   { id: "cat-1", name: "Personnel", color: "#9b87f5" },
   { id: "cat-2", name: "Travail", color: "#4ade80" },
-  { id: "cat-3", name: "Projet A", color: "#f97316" },
+  { id: "cat-3", name: "Projets", color: "#f97316" },
   { id: "cat-4", name: "Idées", color: "#0ea5e9" },
   { id: "cat-5", name: "À faire", color: "#f43f5e" },
 ];

@@ -1,8 +1,8 @@
+'use client';
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import NoteCard from "./NoteCard";
 import { Note } from "@/libs/data";
-import { notesApi } from "@/libs/api";
 import {
   Select,
   SelectContent,
@@ -10,44 +10,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { notesApi } from "@/libs/api";
 
 interface NoteListProps {
   notes?: Note[];
+  onNotesUpdated?: () => void; // Callback appelé quand les notes changent
 }
 
-const NoteList: React.FC<NoteListProps> = ({ notes: propNotes }) => {
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+const sortOptions = [
+  { value: "updated", label: "Mis à jour" },
+  { value: "created", label: "Date de création" },
+  { value: "alphabetical", label: "Alphabétique" },
+];
+
+const NoteList: React.FC<NoteListProps> = ({ notes: propNotes = [], onNotesUpdated }) => {
   const [view, setView] = useState("grid");
   const [sortBy, setSortBy] = useState("updated");
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    const loadNotes = async () => {
-      setIsLoading(true);
-      try {
-        if (propNotes) {
-          setNotes(propNotes);
-          setIsLoading(false);
-          return;
-        }
-        const data = await notesApi.getAllNotes();
-        setNotes(data);
-      } catch (error) {
-        console.error("Error loading notes:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadNotes();
-  }, [propNotes]);
-
-  // Fonction pour trier les notes
   const getSortedNotes = () => {
-  if (!Array.isArray(notes)) return [];
-  return [...notes].sort((a, b) => {
+    if (!Array.isArray(propNotes)) return [];
+    return [...propNotes].sort((a, b) => {
       if (sortBy === "updated") {
         return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
       } else if (sortBy === "created") {
@@ -57,7 +43,31 @@ const NoteList: React.FC<NoteListProps> = ({ notes: propNotes }) => {
       }
     });
   };
-  
+
+  const handleNoteDeleted = async (noteId: string) => {
+    setIsLoading(true);
+    try {
+      const success = await notesApi.deleteNote(noteId);
+      if (success) {
+        toast.success("Note supprimée avec succès");
+        if (onNotesUpdated) onNotesUpdated(); // On relance la récupération
+      } else {
+        toast.error("Échec de la suppression");
+      }
+    } catch {
+      toast.error("Erreur lors de la suppression");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Cette fonction sera appelée par NoteCard à chaque changement d'une note (édition, etc.)
+  const handleNoteChanged = () => {
+    if (onNotesUpdated) {
+      onNotesUpdated();
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -67,8 +77,8 @@ const NoteList: React.FC<NoteListProps> = ({ notes: propNotes }) => {
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Trier par" />
             </SelectTrigger>
-            <SelectContent>
-              {sortOptions.map(option => (
+            <SelectContent className="bg-white">
+              {sortOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
@@ -83,30 +93,34 @@ const NoteList: React.FC<NoteListProps> = ({ notes: propNotes }) => {
           </Tabs>
         </div>
       </div>
-      
+
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : (
-        <div className={view === "grid" 
-          ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" 
-          : "space-y-4"
-        }>
-          {getSortedNotes().map(note => (
-            <NoteCard key={note.id} note={note} />
+        <div
+          className={
+            view === "grid"
+              ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+              : "space-y-4"
+          }
+        >
+          {getSortedNotes().map((note) => (
+           
+
+            <NoteCard
+  key={note.id}
+  note={note}
+  onNoteChanged={onNotesUpdated}
+  onDelete={handleNoteDeleted}
+/>
+
           ))}
         </div>
       )}
     </div>
   );
 };
-
-// Définition locale des options de tri
-const sortOptions = [
-  { value: "updated", label: "Mis à jour" },
-  { value: "created", label: "Date de création" },
-  { value: "alphabetical", label: "Alphabétique" },
-];
 
 export default NoteList;

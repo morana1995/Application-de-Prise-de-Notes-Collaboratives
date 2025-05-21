@@ -1,3 +1,4 @@
+//src/libs/api.ts
 import prisma from "@/libs/prismadb";
 import { toast } from "sonner";
 
@@ -102,11 +103,16 @@ export const notesApi = {
   },
 
   // Supprimer une note
-  deleteNote: async (id: string) => {
+ deleteNote: async (id: string) => {
     try {
-      await prisma.note.delete({
-        where: { id },
+      const response = await fetch(`/api/notes?id=${id}`, {
+        method: "DELETE",
       });
+
+      if (!response.ok) {
+        throw new Error("Échec de la suppression de la note");
+      }
+
       toast.success("Note supprimée avec succès");
       return true;
     } catch (error) {
@@ -115,10 +121,9 @@ export const notesApi = {
       return false;
     }
   },
-};
-
+}
 // API Categories avec Prisma + MongoDB
-export const categoriesApi = {
+    export const categoriesApi = {
   // Obtenir toutes les catégories d’un utilisateur
   getAllCategories: async (userId: string) => {
     try {
