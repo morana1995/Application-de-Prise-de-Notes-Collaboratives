@@ -3,7 +3,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  avatar: string;
+  image: string;
 }
 
 export interface Note {
