@@ -10,14 +10,20 @@ export interface Note {
   id: string;
   title: string;
   content: string;
+  isFavorite: boolean;
   createdAt: string;
   updatedAt: string;
-  categoryId?: string;
-  isFavorite: boolean;
-  isPublic: boolean;
-  author: User;
-  collaborators: User[];
+  user: {
+    name: string;
+    image?: string | null;
+  };
+  category?: {
+    name: string;
+    color?: string;
+  };
+  collaborators?: any[];
 }
+
 
 export interface Category {
   id: string;

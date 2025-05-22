@@ -25,6 +25,9 @@ model Note {
   group       Group?    @relation(fields: [groupId], references: [id])
 
   collaborators Collaboration[] @relation("NoteCollaborators")
+
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model User {
@@ -46,6 +49,9 @@ model User {
   groupMembers GroupMember[]
   
   collaborations Collaboration[] @relation("CollaboratorsOnNote")
+
+  @@index([role])
+  @@index([createdAt])
 }
 
 model Category {
@@ -55,6 +61,9 @@ model Category {
   userId    String   @db.ObjectId
   user      User     @relation(fields: [userId], references: [id])
   notes     Note[]
+
+  @@index([userId])
+  @@index([name])
 }
 
 model Group {
@@ -64,6 +73,9 @@ model Group {
   owner     User     @relation("OwnedGroups", fields: [ownerId], references: [id])
   notes     Note[]
   groupMembers GroupMember[]
+
+  @@index([ownerId])
+  @@index([name])
 }
 
 model GroupMember {
@@ -72,6 +84,9 @@ model GroupMember {
   groupId String  @db.ObjectId
   user    User    @relation(fields: [userId], references: [id])
   userId  String  @db.ObjectId
+
+  @@index([groupId])
+  @@index([userId])
 }
 
 model Collaboration {
@@ -81,6 +96,9 @@ model Collaboration {
 
   note    Note     @relation(fields: [noteId], references: [id], name: "NoteCollaborators")
   user    User     @relation(fields: [userId], references: [id], name: "CollaboratorsOnNote")
+
+  @@index([noteId])
+  @@index([userId])
 }
 
 

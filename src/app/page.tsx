@@ -6,7 +6,6 @@ import CreateNoteButton from "@/components/ui/CreateNoteButton";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import NoteList from "@/components/Notes/NoteList";
 
 const Index = () => {
@@ -17,31 +16,27 @@ const Index = () => {
   const router = useRouter();
 
   useEffect(() => {
-    const checkAuthAndLoadData = async () => {
+    const loadDashboard = async () => {
       try {
-        const authRes = await fetch("/api/user");
-        if (!authRes.ok) {
+        const res = await fetch("/api/user");
+        if (!res.ok) {
           router.push("/login");
           return;
         }
-
-       const data = await authRes.json();
-       setUser(data.user);
-
-        const notesRes = await fetch(`/api/notes?userId=${data.user.id}`);        
-        const notesData = await notesRes.json();
-        setNotes(notesData);
+        const { user, notes } = await res.json();
+        setUser(user);
+        setNotes(notes);
       } catch (err) {
-        console.error("Erreur chargement données :", err);
+        console.error("Erreur chargement dashboard :", err);
       } finally {
         setLoading(false);
       }
     };
 
-    checkAuthAndLoadData();
+    loadDashboard();
   }, [refresh]);
 
-  const handleNoteCreated = () => setRefresh((r) => r + 1);
+  const handleNoteCreated = () => setRefresh(r => r + 1);
 
   if (loading) {
     return (
@@ -72,11 +67,11 @@ const Index = () => {
           <CardContent className="p-6">
             <div className="flex flex-col md:flex-row justify-between items-center">
               <div>
-                {user && user.name && (
-  <h1 className="text-3xl font-bold">
-    Bonjour, {user.name.split(" ")[0]}
-  </h1>
-)}
+                {user?.name && (
+                  <h1 className="text-3xl font-bold">
+                    Bonjour, {user.name.split(" ")[0]}
+                  </h1>
+                )}
                 <p className="text-gray-600 mt-1 text-sm">
                   Gérez et organisez vos notes facilement avec NoteNexus
                 </p>
@@ -85,7 +80,6 @@ const Index = () => {
             </div>
           </CardContent>
         </Card>
-
 
         <NoteList key={refresh} notes={notes} />
       </div>
